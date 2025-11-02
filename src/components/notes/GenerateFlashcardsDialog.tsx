@@ -18,12 +18,23 @@ interface GenerateFlashcardsDialogProps {
   onGenerate: (request: GenerateFlashcardsRequest) => Promise<void>
 }
 
+interface File {
+  id: string
+  title: string
+  file_type: string
+  created_at: string
+}
+
 export function GenerateFlashcardsDialog({
   isOpen,
   onClose,
   onGenerate
 }: GenerateFlashcardsDialogProps) {
-  const [step, setStep] = useState<'select' | 'configure'>('select')
+  const [step, setStep] = useState<'method' | 'select' | 'configure'>('method')
+  const [generationMethod, setGenerationMethod] = useState<'file' | 'notes' | null>(null)
+  const [files, setFiles] = useState<File[]>([])
+  const [selectedFileId, setSelectedFileId] = useState<string | null>(null)
+  const [loadingFiles, setLoadingFiles] = useState(false)
   const [notes, setNotes] = useState<Note[]>([])
   const [loadingNotes, setLoadingNotes] = useState(false)
   const [selectedNoteIds, setSelectedNoteIds] = useState<string[]>([])
@@ -34,12 +45,15 @@ export function GenerateFlashcardsDialog({
   const [isGenerating, setIsGenerating] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
 
-  // Fetch notes when dialog opens
+  // Fetch notes/files when dialog opens
   useEffect(() => {
     if (isOpen) {
       fetchNotes()
-      setStep('select')
+      fetchFiles()
+      setStep('method')
+      setGenerationMethod(null)
       setSelectedNoteIds([])
+      setSelectedFileId(null)
       setSearchQuery('')
     }
   }, [isOpen])
@@ -62,6 +76,24 @@ export function GenerateFlashcardsDialog({
     }
   }
 
+  const fetchFiles = async () => {
+    try {
+      setLoadingFiles(true)
+      const { data, error } = await supabase
+        .from('files')
+        .select('id, title, file_type, created_at')
+        .order('created_at', { ascending: false })
+
+      if (error) throw error
+      setFiles(data || [])
+    } catch (error) {
+      console.error('Failed to fetch files:', error)
+      setFiles([])
+    } finally {
+      setLoadingFiles(false)
+    }
+  }
+
   const toggleNoteSelection = (noteId: string) => {
     setSelectedNoteIds(prev => 
       prev.includes(noteId)
@@ -74,8 +106,21 @@ export function GenerateFlashcardsDialog({
     note.title.toLowerCase().includes(searchQuery.toLowerCase())
   )
 
+  const handleSelectMethod = (method: 'file' | 'notes') => {
+    setGenerationMethod(method)
+    setStep('select')
+  }
+
+  const handleBackToMethod = () => {
+    setStep('method')
+    setGenerationMethod(null)
+    setSelectedNoteIds([])
+    setSelectedFileId(null)
+  }
+
   const handleContinue = () => {
-    if (selectedNoteIds.length === 0) return
+    if (generationMethod === 'file' && !selectedFileId) return
+    if (generationMethod === 'notes' && selectedNoteIds.length === 0) return
     setStep('configure')
   }
 
@@ -86,12 +131,19 @@ export function GenerateFlashcardsDialog({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    if (selectedNoteIds.length === 0) return
+    let noteIds: string[] = []
+    if (generationMethod === 'file' && selectedFileId) {
+      noteIds = [selectedFileId]
+    } else if (generationMethod === 'notes' && selectedNoteIds.length > 0) {
+      noteIds = selectedNoteIds
+    } else {
+      return
+    }
     
     setIsGenerating(true)
     try {
       const request: GenerateFlashcardsRequest = {
-        note_ids: selectedNoteIds,
+        note_ids: noteIds,
         num_cards: numCards,
         difficulty,
         set_title: setTitle.trim() || undefined,
@@ -102,8 +154,10 @@ export function GenerateFlashcardsDialog({
       onClose()
       
       // Reset form
-      setStep('select')
+      setStep('method')
+      setGenerationMethod(null)
       setSelectedNoteIds([])
+      setSelectedFileId(null)
       setNumCards(10)
       setDifficulty('medium')
       setSetTitle('')
@@ -131,7 +185,7 @@ export function GenerateFlashcardsDialog({
                 🪄 Generate Flashcards
               </h2>
               <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                {step === 'select' ? 'Step 1: Select Notes' : 'Step 2: Configure'}
+                {step === 'method' ? 'Step 1: Choose Method' : step === 'select' ? 'Step 2: Select Source' : 'Step 3: Configure'}
               </p>
             </div>
             <button
@@ -148,7 +202,125 @@ export function GenerateFlashcardsDialog({
 
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-6">
-          {step === 'select' && (
+          {step === 'method' && (
+            <div className="space-y-4">
+              <p className="text-gray-700 dark:text-gray-300 mb-6">
+                How would you like to generate flashcards?
+              </p>
+              
+              {/* Option 1: From Specific File */}
+              <button
+                onClick={() => handleSelectMethod('file')}
+                className="w-full p-4 border-2 border-gray-300 dark:border-gray-600 rounded-lg hover:border-blue-500 dark:hover:border-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all text-left"
+              >
+                <div className="flex items-start">
+                  <div className="text-2xl mr-4">📄</div>
+                  <div>
+                    <h3 className="font-semibold text-gray-900 dark:text-white mb-1">
+                      Generate from a Specific File
+                    </h3>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      Select one file and generate flashcards from its content
+                    </p>
+                  </div>
+                </div>
+              </button>
+              
+              {/* Option 2: AI Generate Generally */}
+              <button
+                onClick={() => handleSelectMethod('notes')}
+                className="w-full p-4 border-2 border-gray-300 dark:border-gray-600 rounded-lg hover:border-purple-500 dark:hover:border-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-all text-left"
+              >
+                <div className="flex items-start">
+                  <div className="text-2xl mr-4">✨</div>
+                  <div>
+                    <h3 className="font-semibold text-gray-900 dark:text-white mb-1">
+                      AI Generate Generally
+                    </h3>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      Use all relevant files and chat context to generate flashcards
+                    </p>
+                  </div>
+                </div>
+              </button>
+            </div>
+          )}
+
+          {step === 'select' && generationMethod === 'file' && (
+            <div className="space-y-4">
+              {/* Search */}
+              <div>
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search files..."
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                />
+              </div>
+
+              {/* Loading State */}
+              {loadingFiles && (
+                <div className="text-center py-8">
+                  <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">Loading files...</p>
+                </div>
+              )}
+
+              {/* Files List */}
+              {!loadingFiles && files.length === 0 && (
+                <div className="text-center py-8">
+                  <svg className="w-16 h-16 mx-auto text-gray-400 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  <p className="text-gray-600 dark:text-gray-400">
+                    No files yet. Upload some files first!
+                  </p>
+                </div>
+              )}
+
+              {!loadingFiles && files.length > 0 && (
+                <div className="space-y-2 max-h-96 overflow-y-auto">
+                  {files.map((file) => (
+                    <label
+                      key={file.id}
+                      className={`flex items-start p-3 border rounded-lg cursor-pointer transition-colors ${
+                        selectedFileId === file.id
+                          ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
+                          : 'border-gray-300 dark:border-gray-600 hover:border-gray-400'
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        checked={selectedFileId === file.id}
+                        onChange={() => setSelectedFileId(file.id)}
+                        className="mt-1 text-blue-600 focus:ring-blue-500"
+                      />
+                      <div className="ml-3 flex-1 min-w-0">
+                        <p className="font-medium text-gray-900 dark:text-white truncate">
+                          {file.title}
+                        </p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                          {file.file_type.toUpperCase()}
+                        </p>
+                      </div>
+                    </label>
+                  ))}
+                </div>
+              )}
+
+              {/* Selected File Info */}
+              {selectedFileId && (
+                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
+                  <p className="text-sm font-medium text-blue-900 dark:text-blue-100">
+                    ✓ File selected
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {step === 'select' && generationMethod === 'notes' && (
             <div className="space-y-4">
               {/* Search */}
               <div>
@@ -226,14 +398,28 @@ export function GenerateFlashcardsDialog({
 
           {step === 'configure' && (
             <form onSubmit={handleSubmit} className="space-y-4">
-              {/* Selected Notes Info */}
+              {/* Selected Source Info */}
               <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
-                <p className="text-sm font-medium text-blue-900 dark:text-blue-100 mb-1">
-                  📝 {selectedNotes.length} {selectedNotes.length === 1 ? 'Note' : 'Notes'} Selected
-                </p>
-                <p className="text-xs text-blue-700 dark:text-blue-300 line-clamp-2">
-                  {selectedNotes.map(n => n.title).join(', ')}
-                </p>
+                {generationMethod === 'file' && selectedFileId && (
+                  <>
+                    <p className="text-sm font-medium text-blue-900 dark:text-blue-100 mb-1">
+                      📄 File Selected
+                    </p>
+                    <p className="text-xs text-blue-700 dark:text-blue-300">
+                      {files.find(f => f.id === selectedFileId)?.title}
+                    </p>
+                  </>
+                )}
+                {generationMethod === 'notes' && selectedNoteIds.length > 0 && (
+                  <>
+                    <p className="text-sm font-medium text-blue-900 dark:text-blue-100 mb-1">
+                      📝 {selectedNoteIds.length} {selectedNoteIds.length === 1 ? 'Note' : 'Notes'} Selected
+                    </p>
+                    <p className="text-xs text-blue-700 dark:text-blue-300 line-clamp-2">
+                      {selectedNotes.map(n => n.title).join(', ')}
+                    </p>
+                  </>
+                )}
               </div>
 
             {/* Number of Cards */}
@@ -333,8 +519,26 @@ export function GenerateFlashcardsDialog({
         {/* Footer Actions */}
         <div className="p-6 border-t border-gray-200 dark:border-gray-700">
           <div className="flex space-x-3">
+            {step === 'method' && (
+              <>
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+                >
+                  Cancel
+                </button>
+              </>
+            )}
             {step === 'select' && (
               <>
+                <button
+                  type="button"
+                  onClick={handleBackToMethod}
+                  className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+                >
+                  ← Back
+                </button>
                 <button
                   type="button"
                   onClick={onClose}
@@ -345,7 +549,7 @@ export function GenerateFlashcardsDialog({
                 <button
                   type="button"
                   onClick={handleContinue}
-                  disabled={selectedNoteIds.length === 0}
+                  disabled={(generationMethod === 'file' && !selectedFileId) || (generationMethod === 'notes' && selectedNoteIds.length === 0)}
                   className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Continue →
