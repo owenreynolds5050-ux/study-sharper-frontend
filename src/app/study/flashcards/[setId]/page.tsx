@@ -4,7 +4,8 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import type { Flashcard } from '@/types/flashcards'
-import { getFlashcardsInSet, recordFlashcardReview } from '@/lib/api/flashcards'
+import { getFlashcardsInSet, recordFlashcardReview, deleteFlashcard } from '@/lib/api/flashcards'
+import { EditCardDialog } from '@/components/flashcards/EditCardDialog'
 
 interface PageProps {
   params: Promise<{ setId: string }> | { setId: string }
@@ -25,6 +26,9 @@ export default function FlashcardStudyPage({ params }: PageProps) {
     skipped: 0,
     total: 0
   })
+  const [editingCard, setEditingCard] = useState<Flashcard | null>(null)
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   useEffect(() => {
     // Handle both Promise and plain object params
@@ -161,6 +165,55 @@ export default function FlashcardStudyPage({ params }: PageProps) {
     }
   }
 
+  const handleEditCard = () => {
+    setEditingCard(currentCard)
+    setIsEditDialogOpen(true)
+  }
+
+  const handleEditSuccess = (updatedCard: Flashcard) => {
+    // Update the card in the flashcards array
+    setFlashcards(prev => 
+      prev.map(card => card.id === updatedCard.id ? updatedCard : card)
+    )
+    setIsEditDialogOpen(false)
+  }
+
+  const handleDeleteCard = async () => {
+    if (!currentCard) return
+    
+    if (!confirm('Are you sure you want to delete this card? This cannot be undone.')) {
+      return
+    }
+
+    setIsDeleting(true)
+    try {
+      await deleteFlashcard(currentCard.id)
+      
+      // Remove card from flashcards array
+      const updatedFlashcards = flashcards.filter(card => card.id !== currentCard.id)
+      
+      if (updatedFlashcards.length === 0) {
+        alert('All cards deleted. Returning to flashcard sets.')
+        router.push('/study/flashcards')
+        return
+      }
+      
+      setFlashcards(updatedFlashcards)
+      
+      // Adjust current index if needed
+      if (currentIndex >= updatedFlashcards.length) {
+        setCurrentIndex(Math.max(0, updatedFlashcards.length - 1))
+      }
+      
+      resetCardState()
+    } catch (error) {
+      console.error('Failed to delete card:', error)
+      alert('Failed to delete card. Please try again.')
+    } finally {
+      setIsDeleting(false)
+    }
+  }
+
   const handleKeyPress = (event: KeyboardEvent) => {
     if (loading) return
     
@@ -255,6 +308,23 @@ export default function FlashcardStudyPage({ params }: PageProps) {
                 Attempts: {attempts}
               </p>
             )}
+            {/* Edit/Delete Buttons */}
+            <div className="flex justify-center gap-2 mt-4">
+              <button
+                onClick={handleEditCard}
+                disabled={isDeleting}
+                className="px-3 py-1 text-sm bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded hover:bg-blue-200 dark:hover:bg-blue-900/50 disabled:opacity-50"
+              >
+                ✏️ Edit
+              </button>
+              <button
+                onClick={handleDeleteCard}
+                disabled={isDeleting}
+                className="px-3 py-1 text-sm bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded hover:bg-red-200 dark:hover:bg-red-900/50 disabled:opacity-50"
+              >
+                {isDeleting ? '🗑️ Deleting...' : '🗑️ Delete'}
+              </button>
+            </div>
           </div>
 
           {/* Answer Input */}
@@ -335,6 +405,14 @@ export default function FlashcardStudyPage({ params }: PageProps) {
           )}
         </div>
       </div>
+
+      {/* Edit Card Dialog */}
+      <EditCardDialog
+        isOpen={isEditDialogOpen}
+        card={editingCard}
+        onClose={() => setIsEditDialogOpen(false)}
+        onSuccess={handleEditSuccess}
+      />
     </div>
   )
 }

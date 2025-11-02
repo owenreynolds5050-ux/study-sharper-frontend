@@ -282,3 +282,48 @@ export async function createManualFlashcard(
 
   return response.json()
 }
+
+/**
+ * Update a flashcard
+ */
+export async function updateFlashcard(
+  flashcardId: string,
+  front?: string,
+  back?: string,
+  explanation?: string
+): Promise<Flashcard> {
+  const response = await fetchWithAuth(`/api/flashcards/${flashcardId}`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      front,
+      back,
+      explanation,
+    }),
+  })
+
+  if (!response.ok) {
+    const error = await response.json()
+    throw new Error(error.error || 'Failed to update flashcard')
+  }
+
+  return response.json()
+}
+
+/**
+ * Delete a flashcard
+ */
+export async function deleteFlashcard(flashcardId: string): Promise<{ success: boolean }> {
+  const response = await fetchWithAuth(`/api/flashcards/${flashcardId}`, {
+    method: 'DELETE',
+  })
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}))
+    throw new Error(error.error || 'Failed to delete flashcard')
+  }
+
+  return response.json()
+}
