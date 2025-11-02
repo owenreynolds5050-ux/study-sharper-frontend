@@ -292,12 +292,13 @@ export async function updateFlashcard(
   back?: string,
   explanation?: string
 ): Promise<Flashcard> {
-  const response = await fetchWithAuth(`/api/flashcards/${flashcardId}`, {
+  const response = await fetchWithAuth('/api/flashcards', {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
+      id: flashcardId,
       front,
       back,
       explanation,
@@ -305,7 +306,7 @@ export async function updateFlashcard(
   })
 
   if (!response.ok) {
-    const error = await response.json()
+    const error = await response.json().catch(() => ({}))
     throw new Error(error.error || 'Failed to update flashcard')
   }
 
@@ -316,8 +317,14 @@ export async function updateFlashcard(
  * Delete a flashcard
  */
 export async function deleteFlashcard(flashcardId: string): Promise<{ success: boolean }> {
-  const response = await fetchWithAuth(`/api/flashcards/${flashcardId}`, {
+  const response = await fetchWithAuth('/api/flashcards', {
     method: 'DELETE',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      id: flashcardId,
+    }),
   })
 
   if (!response.ok) {
