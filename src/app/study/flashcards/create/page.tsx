@@ -124,9 +124,9 @@ export default function CreateFlashcardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="flex flex-col min-h-screen bg-gray-50 dark:bg-gray-900">
       {/* Header */}
-      <div className="sticky top-0 z-40 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow-sm">
+      <div className="sticky top-0 z-40 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow-sm flex-shrink-0">
         <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center space-x-4">
             <Link
@@ -188,7 +188,8 @@ export default function CreateFlashcardPage() {
       </div>
 
       {/* Main Content */}
-      <div className="max-w-6xl mx-auto px-4 py-8">
+      <div className="flex-1 overflow-y-auto">
+        <div className="max-w-6xl mx-auto px-4 py-8">
         {/* Set Info Section */}
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-8">
           <div className="space-y-4">
@@ -349,6 +350,7 @@ export default function CreateFlashcardPage() {
           <p className="text-sm text-blue-900 dark:text-blue-200">
             <strong>💡 Tip:</strong> You can add cards before creating the set. Only cards with both a term and definition will be saved.
           </p>
+        </div>
         </div>
       </div>
     </div>
