@@ -155,8 +155,8 @@ export default function CreateFlashcardPage() {
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 overflow-y-auto">
-        <div className="max-w-6xl mx-auto px-4 py-8">
+      <div className="flex-1 overflow-y-auto min-h-0">
+        <div className="max-w-6xl mx-auto px-4 py-8 pb-20">
         {/* Set Info Section */}
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-8">
           <div className="space-y-4">
@@ -322,7 +322,7 @@ export default function CreateFlashcardPage() {
       </div>
 
       {/* Footer with Save Buttons */}
-      <div className="flex-shrink-0 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 shadow-lg">
+      <div className="flex-shrink-0 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 shadow-lg sticky bottom-0 z-30">
         <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-end space-x-3">
           <button
             onClick={() => handleCreate(false)}
