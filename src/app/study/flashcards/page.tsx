@@ -6,7 +6,6 @@ import { useRouter } from 'next/navigation'
 import type { FlashcardSet, GenerateFlashcardsRequest, SuggestedFlashcardSet } from '@/types/flashcards'
 import { GenerateFlashcardsDialog } from '@/components/notes/GenerateFlashcardsDialog'
 import { UnifiedChatInterface } from '@/components/ai/UnifiedChatInterface'
-import { CreateManualSetDialog } from '@/components/flashcards/CreateManualSetDialog'
 import { ErrorBanner } from '@/components/ui/ErrorBanner'
 import { Toast } from '@/components/ui/Toast'
 import { generateFlashcards, getFlashcardSets, getSuggestedFlashcards, generateSuggestedFlashcards, deleteFlashcardSet } from '@/lib/api/flashcards'
@@ -18,9 +17,8 @@ export default function FlashcardsPage() {
   const [loading, setLoading] = useState(true)
   const [loadingSuggestions, setLoadingSuggestions] = useState(false)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
-  const [isManualDialogOpen, setIsManualDialogOpen] = useState(false)
   const [isGenerating, setIsGenerating] = useState(false)
-  const [createMode, setCreateMode] = useState<'ai' | 'manual' | null>(null)
+  const [createMode, setCreateMode] = useState<'ai' | null>(null)
   
   // Error states
   const [setsError, setSetsError] = useState<string | null>(null)
@@ -247,18 +245,16 @@ export default function FlashcardsPage() {
             </svg>
             AI Generate
           </button>
-          <button
-            onClick={() => {
-              setCreateMode('manual')
-              setIsManualDialogOpen(true)
-            }}
-            className="px-6 py-3 bg-gray-700 text-white rounded-lg hover:bg-gray-800 transition-colors font-medium flex items-center shadow-md hover:shadow-lg"
-          >
-            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
-            Manual Create
-          </button>
+          <Link href="/study/flashcards/create">
+            <button
+              className="px-6 py-3 bg-gray-700 text-white rounded-lg hover:bg-gray-800 transition-colors font-medium flex items-center shadow-md hover:shadow-lg"
+            >
+              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              Manual Create
+            </button>
+          </Link>
         </div>
       </div>
 
@@ -357,18 +353,16 @@ export default function FlashcardsPage() {
               </svg>
               AI Generate Flashcards
             </button>
-            <button
-              onClick={() => {
-                setCreateMode('manual')
-                setIsManualDialogOpen(true)
-              }}
-              className="flex items-center gap-2 rounded-lg border border-gray-300 px-5 py-3 text-sm font-medium text-gray-700 transition-colors hover:border-gray-400 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-200 dark:hover:border-gray-500 dark:hover:bg-gray-700"
-            >
-              <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16h8M8 12h8m-9 8h10a2 2 0 002-2V6a2 2 0 00-2-2H9l-3 3v13a2 2 0 002 2z" />
-              </svg>
-              Create Set Manually
-            </button>
+            <Link href="/study/flashcards/create">
+              <button
+                className="flex items-center gap-2 rounded-lg border border-gray-300 px-5 py-3 text-sm font-medium text-gray-700 transition-colors hover:border-gray-400 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-200 dark:hover:border-gray-500 dark:hover:bg-gray-700"
+              >
+                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16h8M8 12h8m-9 8h10a2 2 0 002-2V6a2 2 0 00-2-2H9l-3 3v13a2 2 0 002 2z" />
+                </svg>
+                Create Set Manually
+              </button>
+            </Link>
           </div>
         </div>
       ) : null}
@@ -459,21 +453,6 @@ export default function FlashcardsPage() {
         />
       )}
 
-      {/* Manual Create Dialog */}
-      {isManualDialogOpen && createMode === 'manual' && (
-        <CreateManualSetDialog
-          isOpen={isManualDialogOpen}
-          onClose={() => {
-            setIsManualDialogOpen(false)
-            setCreateMode(null)
-          }}
-          onSuccess={(set) => {
-            setIsManualDialogOpen(false)
-            setCreateMode(null)
-            router.push(`/study/flashcards/${set.id}`)
-          }}
-        />
-      )}
 
       {/* AI Chat Assistant */}
       <UnifiedChatInterface
