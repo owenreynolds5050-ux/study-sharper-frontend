@@ -124,7 +124,7 @@ export default function CreateFlashcardPage() {
   }
 
   return (
-    <div className="flex flex-col min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="flex flex-col h-screen bg-gray-50 dark:bg-gray-900 overflow-hidden">
       {/* Header */}
       <div className="sticky top-0 z-40 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow-sm flex-shrink-0">
         <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
