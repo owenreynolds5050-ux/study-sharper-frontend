@@ -132,11 +132,10 @@ export default function FlashcardsPage() {
       }
       
       if (result.ok && result.data) {
-        // Show success toast with verification info if available
-        const message = result.data.message 
-          ? `✨ ${result.data.message}` 
-          : `✨ Successfully generated flashcards!` 
-        
+        // For file generation, result includes verification stats
+        // For notes generation, just show generic success
+        const message = `✨ Successfully generated flashcards!` 
+
         setToast({
           message: message,
           type: 'success'
