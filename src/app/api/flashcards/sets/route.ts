@@ -4,6 +4,8 @@ const BACKEND_URL = process.env.BACKEND_API_URL || 'https://study-sharper-backen
 
 // Force dynamic rendering since we access request headers
 export const dynamic = 'force-dynamic'
+export const revalidate = 0
+export const fetchCache = 'force-no-store'
 
 export async function GET(request: NextRequest) {
   try {
@@ -18,6 +20,7 @@ export async function GET(request: NextRequest) {
         ...(authHeader && { 'Authorization': authHeader }),
         'Content-Type': 'application/json',
       },
+      cache: 'no-store',
     })
 
     console.log('[API /flashcards/sets] Backend response status:', response.status)
@@ -37,13 +40,26 @@ export async function GET(request: NextRequest) {
     console.log('[API /flashcards/sets] Is array?', Array.isArray(data))
     console.log('[API /flashcards/sets] Data length:', data?.length || 'N/A')
     
-    return NextResponse.json(data)
+    return NextResponse.json(data, {
+      headers: {
+        'Cache-Control': 'no-store, max-age=0',
+        'Pragma': 'no-cache',
+        'Expires': '0',
+      },
+    })
 
   } catch (error) {
     console.error('[API /flashcards/sets] Error fetching flashcard sets:', error)
     return NextResponse.json(
       { error: 'Internal server error' },
-      { status: 500 }
+      {
+        status: 500,
+        headers: {
+          'Cache-Control': 'no-store, max-age=0',
+          'Pragma': 'no-cache',
+          'Expires': '0',
+        },
+      }
     )
   }
 }
