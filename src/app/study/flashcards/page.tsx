@@ -54,6 +54,7 @@ export default function FlashcardsPage() {
         const errorMsg = result.error || 'Failed to load flashcard sets'
         console.warn('[Flashcards] Failed:', errorMsg)
         setSetsError(errorMsg)
+        setFlashcardSets([])
       }
     } catch (error) {
       if (signal?.aborted) {
@@ -62,6 +63,7 @@ export default function FlashcardsPage() {
         const message = error instanceof Error ? error.message : 'Failed to load flashcard sets'
         setSetsError(message)
         console.error('[Flashcards] fetchFlashcardSets error:', error)
+        setFlashcardSets([])
       }
     } finally {
       if (fetchId === fetchRequestIdRef.current) {

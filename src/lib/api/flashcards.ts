@@ -18,6 +18,10 @@ async function fetchWithAuth(input: RequestInfo | URL, init: RequestInit = {}) {
 
   const headers = new Headers(init.headers || {})
 
+  headers.set('Cache-Control', 'no-cache, no-store, must-revalidate')
+  headers.set('Pragma', 'no-cache')
+  headers.set('Expires', '0')
+
   if (session?.access_token) {
     headers.set('Authorization', `Bearer ${session.access_token}`)
   }
