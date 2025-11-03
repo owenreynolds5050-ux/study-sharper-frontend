@@ -140,7 +140,8 @@ export function GenerateFlashcardsDialog({
           difficulty
         }
         
-        await onGenerate(request)
+        // Cast to any since onGenerate handles both file and notes requests
+        await onGenerate(request as any)
       } else if (generationMethod === 'notes' && selectedNoteIds.length > 0) {
         // NOTES MODE: Call the general generation endpoint
         const request: GenerateFlashcardsRequest = {
