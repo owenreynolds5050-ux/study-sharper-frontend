@@ -57,7 +57,7 @@ export default function FlashcardsPage() {
     }
     
     setLoading(false)
-  }, [flashcardSets.length])
+  }, [])
 
   const fetchSuggestedSets = useCallback(async (signal?: AbortSignal) => {
     setSuggestionsError(null)
@@ -116,6 +116,9 @@ export default function FlashcardsPage() {
       // Add the new set to the list immediately (optimistic update)
       setFlashcardSets(prev => [result.data!, ...prev])
       
+      // Refetch to get fresh data from server
+      await fetchFlashcardSets()
+      
       // Navigate to the new set after a brief delay to show toast
       setTimeout(() => {
         router.push(`/study/flashcards/${result.data!.id}`)
@@ -129,7 +132,7 @@ export default function FlashcardsPage() {
     }
     
     setIsGenerating(false)
-  }, [router])
+  }, [router, fetchFlashcardSets])
 
   const handleDelete = async (setId: string) => {
     if (!confirm('Are you sure you want to delete this flashcard set? This cannot be undone.')) {
@@ -145,6 +148,14 @@ export default function FlashcardsPage() {
       if (!response.success) {
         throw new Error('Delete failed')
       }
+
+      // Refetch to verify deletion and update UI
+      await fetchFlashcardSets()
+      
+      setToast({
+        message: '✅ Set deleted successfully',
+        type: 'success'
+      })
     } catch (error) {
       console.error('Failed to delete flashcard set:', error)
       // Revert optimistic update on error
