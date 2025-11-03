@@ -130,7 +130,6 @@ export default function FlashcardsPage() {
 
     try {
       // Optimistic update - remove from UI immediately
-      const deletedSet = flashcardSets.find(s => s.id === setId)
       setFlashcardSets(prev => prev.filter(s => s.id !== setId))
 
       const response = await deleteFlashcardSet(setId)
@@ -138,12 +137,6 @@ export default function FlashcardsPage() {
       if (!response.success) {
         throw new Error('Delete failed')
       }
-
-      // Show success toast
-      setToast({
-        message: `✅ "${deletedSet?.title}" deleted successfully`,
-        type: 'success'
-      })
     } catch (error) {
       console.error('Failed to delete flashcard set:', error)
       // Revert optimistic update on error
