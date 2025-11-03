@@ -26,33 +26,48 @@ export default function FlashcardsPage() {
   
   // Toast notification state
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null)
+  const fetchRequestIdRef = useRef(0)
 
   const fetchFlashcardSets = useCallback(async (signal?: AbortSignal) => {
+    const fetchId = ++fetchRequestIdRef.current
     setSetsError(null)
     setLoading(true)
-    console.log('[Flashcards Page] fetchFlashcardSets called')
-    
-    const result = await getFlashcardSets(signal, { retries: 2, initialDelayMs: 500 })
-    
-    console.log('[Flashcards Page] getFlashcardSets result:', result)
-    console.log('[Flashcards Page] result.ok:', result.ok)
-    console.log('[Flashcards Page] result.data:', result.data)
-    console.log('[Flashcards Page] result.data type:', typeof result.data)
-    console.log('[Flashcards Page] result.data is array?', Array.isArray(result.data))
-    
-    if (result.ok && result.data) {
-      console.log('[Flashcards Page] Setting flashcard sets to:', result.data)
-      setFlashcardSets(result.data)
-      setSetsError(null)
-      console.log('[DEBUG] State after setFlashcardSets, flashcardSets value:', result.data)
-      console.log('[Flashcards] Success:', result.data.length, 'sets')
-    } else {
-      const errorMsg = result.error || 'Failed to load flashcard sets'
-      console.warn('[Flashcards] Failed:', errorMsg)
-      setSetsError(errorMsg)
+    console.log('[Flashcards Page] fetchFlashcardSets called - id:', fetchId)
+
+    try {
+      const result = await getFlashcardSets(signal, { retries: 2, initialDelayMs: 500 })
+
+      console.log('[Flashcards Page] getFlashcardSets result (id:', fetchId, '):', result)
+
+      if (fetchId !== fetchRequestIdRef.current) {
+        console.log('[Flashcards Page] Ignoring stale fetchFlashcardSets response - id:', fetchId)
+        return
+      }
+
+      if (result.ok && result.data) {
+        console.log('[Flashcards Page] Setting flashcard sets to (id:', fetchId, '):', result.data)
+        setFlashcardSets(result.data)
+        setSetsError(null)
+        console.log('[DEBUG] State after setFlashcardSets, flashcardSets value:', result.data)
+        console.log('[Flashcards] Success:', result.data.length, 'sets')
+      } else {
+        const errorMsg = result.error || 'Failed to load flashcard sets'
+        console.warn('[Flashcards] Failed:', errorMsg)
+        setSetsError(errorMsg)
+      }
+    } catch (error) {
+      if (signal?.aborted) {
+        console.log('[Flashcards Page] fetchFlashcardSets aborted - id:', fetchId)
+      } else if (fetchId === fetchRequestIdRef.current) {
+        const message = error instanceof Error ? error.message : 'Failed to load flashcard sets'
+        setSetsError(message)
+        console.error('[Flashcards] fetchFlashcardSets error:', error)
+      }
+    } finally {
+      if (fetchId === fetchRequestIdRef.current) {
+        setLoading(false)
+      }
     }
-    
-    setLoading(false)
   }, [])
 
   const fetchSuggestedSets = useCallback(async (signal?: AbortSignal) => {
@@ -114,7 +129,7 @@ export default function FlashcardsPage() {
       setFlashcardSets(prev => [result.data!, ...prev])
       
       // Refetch to get fresh data from server
-      await fetchFlashcardSets()
+      await forceRefresh()
       
       // Navigate to the new set after a brief delay to show toast
       setTimeout(() => {
@@ -231,7 +246,7 @@ export default function FlashcardsPage() {
         <ErrorBanner
           title="Failed to Load Flashcards"
           message={setsError}
-          onRetry={() => fetchFlashcardSets()}
+          onRetry={() => forceRefresh()}
           variant="error"
         />
       )}
@@ -493,7 +508,7 @@ export default function FlashcardsPage() {
         placeholder="Ask me to create flashcards..."
         onContentGenerated={(content) => {
           // Refresh flashcard sets when new ones are generated
-          fetchFlashcardSets()
+          forceRefresh()
         }}
       />
     </div>
