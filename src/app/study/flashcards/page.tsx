@@ -150,7 +150,9 @@ export default function FlashcardsPage() {
       }
 
       // Refetch to verify deletion and update UI
+      console.log('[Flashcards] Deleting set, about to refetch')
       await fetchFlashcardSets()
+      console.log('[Flashcards] After refetch, sets:', flashcardSets)
       
       setToast({
         message: '✅ Set deleted successfully',
@@ -185,15 +187,18 @@ export default function FlashcardsPage() {
 
   // Load data on mount
   useEffect(() => {
+    console.log('[Flashcards] useEffect running')
     // AbortController for cleanup - cancels requests on unmount
     const abortController = new AbortController()
     let isMounted = true
 
     const loadData = async () => {
+      console.log('[Flashcards] About to fetch flashcards')
       await Promise.allSettled([
         fetchFlashcardSets(abortController.signal),
         fetchSuggestedSets(abortController.signal)
       ])
+      console.log('[Flashcards] Fetch complete, sets:', flashcardSets)
       
       if (!isMounted) {
         console.log('[Flashcards] Component unmounted, skipping state updates')

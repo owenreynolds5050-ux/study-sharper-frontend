@@ -89,16 +89,19 @@ export async function getFlashcardSets(
 ): Promise<ApiResult<FlashcardSet[]>> {
   return retryApiCall(
     async () => {
+      console.log('[getFlashcardSets] getFlashcardSets called')
       console.log('[getFlashcardSets] Starting fetch...')
       // Cache-busting: add timestamp to force fresh fetch
       const timestamp = Date.now()
       const url = `/api/flashcards/sets?t=${timestamp}`
+      console.log('[getFlashcardSets] Fetching URL:', url)
       const response = await fetchWithAuth(url, {
         method: 'GET',
         signal,
       })
 
       console.log('[getFlashcardSets] Response status:', response.status, 'ok:', response.ok)
+      console.log('[getFlashcardSets] Raw response:', response)
 
       if (!response.ok) {
         const error = await response.json().catch(() => ({}))
@@ -116,6 +119,7 @@ export async function getFlashcardSets(
       console.log('[getFlashcardSets] Data type:', typeof data)
       console.log('[getFlashcardSets] Is array?', Array.isArray(data))
       console.log('[getFlashcardSets] Data length:', data?.length || 'N/A')
+      console.log('[getFlashcardSets] Returning data:', data)
       
       return { ok: true, status: response.status, data }
     },
