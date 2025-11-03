@@ -8,7 +8,7 @@ import { GenerateFlashcardsDialog } from '@/components/notes/GenerateFlashcardsD
 import { UnifiedChatInterface } from '@/components/ai/UnifiedChatInterface'
 import { ErrorBanner } from '@/components/ui/ErrorBanner'
 import { Toast } from '@/components/ui/Toast'
-import { generateFlashcards, getFlashcardSets, getSuggestedFlashcards, generateSuggestedFlashcards, deleteFlashcardSet } from '@/lib/api/flashcards'
+import { generateFlashcards, generateFlashcardsFromFile, getFlashcardSets, getSuggestedFlashcards, generateSuggestedFlashcards, deleteFlashcardSet } from '@/lib/api/flashcards'
 
 export default function FlashcardsPage() {
   const router = useRouter()
@@ -113,39 +113,61 @@ export default function FlashcardsPage() {
     setLoadingSuggestions(false)
   }, [fetchSuggestedSets])
 
-  const handleGenerate = useCallback(async (request: GenerateFlashcardsRequest) => {
+  const handleGenerate = useCallback(async (request: any) => {
     setIsGenerating(true)
     setSetsError(null)
     
-    const result = await generateFlashcards(request, { retries: 1, initialDelayMs: 1000 })
-    
-    if (result.ok && result.data) {
-      // Show success toast
+    try {
+      let result
+      
+      // Check if this is a file request or notes request
+      if ('file_id' in request) {
+        // FILE MODE: Use generateFlashcardsFromFile
+        console.log('[Flashcards] Generating from file:', request.file_id)
+        result = await generateFlashcardsFromFile(request, { retries: 1, initialDelayMs: 1000 })
+      } else {
+        // NOTES MODE: Use generateFlashcards
+        console.log('[Flashcards] Generating from notes:', request.note_ids)
+        result = await generateFlashcards(request, { retries: 1, initialDelayMs: 1000 })
+      }
+      
+      if (result.ok && result.data) {
+        // Show success toast with verification info if available
+        const message = result.data.message 
+          ? `✨ ${result.data.message}` 
+          : `✨ Successfully generated flashcards!` 
+        
+        setToast({
+          message: message,
+          type: 'success'
+        })
+        
+        // Add the new set to the list immediately (optimistic update)
+        setFlashcardSets(prev => [result.data!, ...prev])
+        
+        // Refetch to get fresh data from server
+        await fetchFlashcardSets()
+        
+        // Navigate to the new set after a brief delay to show toast
+        setTimeout(() => {
+          router.push(`/study/flashcards/${result.data!.id}`)
+        }, 1500)
+      } else {
+        const message = result.error || 'Failed to generate flashcards'
+        setToast({
+          message: `❌ ${message}. Please try again.`,
+          type: 'error'
+        })
+      }
+    } catch (error) {
+      console.error('[Flashcards] Generation error:', error)
       setToast({
-        message: `✨ Successfully generated ${result.data.total_cards} flashcards!`,
-        type: 'success'
-      })
-      
-      // Add the new set to the list immediately (optimistic update)
-      console.log('[Flashcards] setFlashcardSets called from handleGenerate (optimistic update)', new Error().stack)
-      setFlashcardSets(prev => [result.data!, ...prev])
-      
-      // Refetch to get fresh data from server
-      await forceRefresh()
-      
-      // Navigate to the new set after a brief delay to show toast
-      setTimeout(() => {
-        router.push(`/study/flashcards/${result.data!.id}`)
-      }, 1500)
-    } else {
-      const message = result.error || 'Failed to generate flashcards'
-      setToast({
-        message: `❌ ${message}. Please try again.`,
+        message: `❌ An unexpected error occurred. Please try again.`,
         type: 'error'
       })
+    } finally {
+      setIsGenerating(false)
     }
-    
-    setIsGenerating(false)
   }, [router, fetchFlashcardSets])
 
   const forceRefresh = useCallback(() => {

@@ -130,43 +130,33 @@ export function GenerateFlashcardsDialog({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
-    let noteIds: string[] = []
-    if (generationMethod === 'file' && selectedFileId) {
-      noteIds = [selectedFileId]
-    } else if (generationMethod === 'notes' && selectedNoteIds.length > 0) {
-      noteIds = selectedNoteIds
-    } else {
-      return
-    }
-    
-    setIsGenerating(true)
+
     try {
-      const request: GenerateFlashcardsRequest = {
-        note_ids: noteIds,
-        num_cards: numCards,
-        difficulty,
-        set_title: setTitle.trim() || undefined,
-        set_description: setDescription.trim() || undefined
+      if (generationMethod === 'file' && selectedFileId) {
+        // FILE MODE: Call the file-specific endpoint
+        const request = {
+          file_id: selectedFileId,
+          num_cards: numCards,
+          difficulty
+        }
+        
+        await onGenerate(request)
+      } else if (generationMethod === 'notes' && selectedNoteIds.length > 0) {
+        // NOTES MODE: Call the general generation endpoint
+        const request: GenerateFlashcardsRequest = {
+          note_ids: selectedNoteIds,
+          num_cards: numCards,
+          difficulty,
+          set_title: setTitle.trim() || undefined,
+          set_description: setDescription.trim() || undefined
+        }
+        
+        await onGenerate(request)
+      } else {
+        console.warn('[GenerateFlashcardsDialog] No sources selected')
       }
-      
-      await onGenerate(request)
-      onClose()
-      
-      // Reset form
-      setStep('method')
-      setGenerationMethod(null)
-      setSelectedNoteIds([])
-      setSelectedFileId(null)
-      setNumCards(10)
-      setDifficulty('medium')
-      setSetTitle('')
-      setSetDescription('')
-      setSearchQuery('')
     } catch (error) {
-      console.error('Failed to generate flashcards:', error)
-    } finally {
-      setIsGenerating(false)
+      console.error('[GenerateFlashcardsDialog] Submit error:', error)
     }
   }
 

@@ -68,6 +68,34 @@ export async function generateFlashcards(
   )
 }
 
+export async function generateFlashcardsFromFile(
+  request: {
+    file_id: string
+    num_cards: number
+    difficulty: string
+  },
+  retryOptions?: ApiRetryOptions
+): Promise<ApiResult<FlashcardSet>> {
+  return retryApiCall(
+    async () => {
+      const response = await fetchWithAuth('/api/flashcards/generate-from-file', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(request),
+      })
+
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({}))
+        return { ok: false, status: response.status, data: null, error: error?.error }
+      }
+
+      const data = await response.json()
+      return { ok: true, status: response.status, data }
+    },
+    retryOptions
+  )
+}
+
 /**
  * Delete a flashcard set
  */
