@@ -90,7 +90,10 @@ export async function getFlashcardSets(
   return retryApiCall(
     async () => {
       console.log('[getFlashcardSets] Starting fetch...')
-      const response = await fetchWithAuth('/api/flashcards/sets', {
+      // Cache-busting: add timestamp to force fresh fetch
+      const timestamp = Date.now()
+      const url = `/api/flashcards/sets?t=${timestamp}`
+      const response = await fetchWithAuth(url, {
         method: 'GET',
         signal,
       })
