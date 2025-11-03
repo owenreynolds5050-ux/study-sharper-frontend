@@ -124,22 +124,36 @@ export default function FlashcardsPage() {
   }, [router])
 
   const handleDelete = async (setId: string) => {
-    if (!confirm('Are you sure you want to delete this flashcard set?')) {
+    if (!confirm('Are you sure you want to delete this flashcard set? This cannot be undone.')) {
       return
     }
 
     try {
+      // Optimistic update - remove from UI immediately
+      const deletedSet = flashcardSets.find(s => s.id === setId)
+      setFlashcardSets(prev => prev.filter(s => s.id !== setId))
+
       const response = await deleteFlashcardSet(setId)
 
       if (!response.success) {
         throw new Error('Delete failed')
       }
 
-      await fetchFlashcardSets()
+      // Show success toast
+      setToast({
+        message: `✅ "${deletedSet?.title}" deleted successfully`,
+        type: 'success'
+      })
     } catch (error) {
       console.error('Failed to delete flashcard set:', error)
-      const message = error instanceof Error ? error.message : 'Failed to delete flashcard set.'
-      alert(`Failed to delete flashcard set. ${message}`)
+      // Revert optimistic update on error
+      await fetchFlashcardSets()
+      
+      const message = error instanceof Error ? error.message : 'Failed to delete flashcard set'
+      setToast({
+        message: `❌ ${message}`,
+        type: 'error'
+      })
     }
   }
 
