@@ -43,6 +43,7 @@ export default function FlashcardsPage() {
     if (result.ok && result.data) {
       console.log('[Flashcards Page] Setting flashcard sets to:', result.data)
       console.log('[Flashcards] BEFORE setFlashcardSets:', result.data)
+      console.log('[Flashcards] setFlashcardSets called from fetchFlashcardSets (success path)', new Error().stack)
       setFlashcardSets(result.data)
       console.log('[Flashcards] AFTER setFlashcardSets, new state should be:', result.data)
       setSetsError(null)
@@ -51,11 +52,6 @@ export default function FlashcardsPage() {
       const errorMsg = result.error || 'Failed to load flashcard sets'
       console.warn('[Flashcards] Failed:', errorMsg)
       setSetsError(errorMsg)
-      
-      // Keep existing sets on error (don't wipe state)
-      if (flashcardSets.length === 0) {
-        setFlashcardSets([])
-      }
     }
     
     setLoading(false)
@@ -116,6 +112,7 @@ export default function FlashcardsPage() {
       })
       
       // Add the new set to the list immediately (optimistic update)
+      console.log('[Flashcards] setFlashcardSets called from handleGenerate (optimistic update)', new Error().stack)
       setFlashcardSets(prev => [result.data!, ...prev])
       
       // Refetch to get fresh data from server
@@ -143,6 +140,7 @@ export default function FlashcardsPage() {
 
     try {
       // Optimistic update - remove from UI immediately
+      console.log('[Flashcards] setFlashcardSets called from handleDelete (optimistic remove)', new Error().stack)
       setFlashcardSets(prev => prev.filter(s => s.id !== setId))
 
       const response = await deleteFlashcardSet(setId)
