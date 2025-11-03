@@ -42,11 +42,9 @@ export default function FlashcardsPage() {
     
     if (result.ok && result.data) {
       console.log('[Flashcards Page] Setting flashcard sets to:', result.data)
-      console.log('[Flashcards] BEFORE setFlashcardSets:', result.data)
-      console.log('[Flashcards] setFlashcardSets called from fetchFlashcardSets (success path)', new Error().stack)
       setFlashcardSets(result.data)
-      console.log('[Flashcards] AFTER setFlashcardSets, new state should be:', result.data)
       setSetsError(null)
+      console.log('[DEBUG] State after setFlashcardSets, flashcardSets value:', result.data)
       console.log('[Flashcards] Success:', result.data.length, 'sets')
     } else {
       const errorMsg = result.error || 'Failed to load flashcard sets'
@@ -133,14 +131,17 @@ export default function FlashcardsPage() {
     setIsGenerating(false)
   }, [router, fetchFlashcardSets])
 
-  const handleDelete = async (setId: string) => {
+  const forceRefresh = useCallback(() => {
+    return fetchFlashcardSets()
+  }, [fetchFlashcardSets])
+
+  const handleDelete = useCallback(async (setId: string) => {
     if (!confirm('Are you sure you want to delete this flashcard set? This cannot be undone.')) {
       return
     }
 
     try {
       // Optimistic update - remove from UI immediately
-      console.log('[Flashcards] setFlashcardSets called from handleDelete (optimistic remove)', new Error().stack)
       setFlashcardSets(prev => prev.filter(s => s.id !== setId))
 
       const response = await deleteFlashcardSet(setId)
@@ -150,9 +151,7 @@ export default function FlashcardsPage() {
       }
 
       // Refetch to verify deletion and update UI
-      console.log('[Flashcards] Deleting set, about to refetch')
-      await fetchFlashcardSets()
-      console.log('[Flashcards] After refetch, sets:', flashcardSets)
+      await forceRefresh()
       
       setToast({
         message: '✅ Set deleted successfully',
@@ -161,7 +160,7 @@ export default function FlashcardsPage() {
     } catch (error) {
       console.error('Failed to delete flashcard set:', error)
       // Revert optimistic update on error
-      await fetchFlashcardSets()
+      await forceRefresh()
       
       const message = error instanceof Error ? error.message : 'Failed to delete flashcard set'
       setToast({
@@ -169,7 +168,7 @@ export default function FlashcardsPage() {
         type: 'error'
       })
     }
-  }
+  }, [forceRefresh])
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString)
@@ -190,20 +189,17 @@ export default function FlashcardsPage() {
     console.log('[Flashcards] State updated! flashcardSets is now:', flashcardSets)
   }, [flashcardSets])
 
-  // Load data on mount
+  // Load data on mount only
   useEffect(() => {
-    console.log('[Flashcards] useEffect running')
     // AbortController for cleanup - cancels requests on unmount
     const abortController = new AbortController()
     let isMounted = true
 
     const loadData = async () => {
-      console.log('[Flashcards] About to fetch flashcards')
       await Promise.allSettled([
         fetchFlashcardSets(abortController.signal),
         fetchSuggestedSets(abortController.signal)
       ])
-      console.log('[Flashcards] Fetch complete, sets:', flashcardSets)
       
       if (!isMounted) {
         console.log('[Flashcards] Component unmounted, skipping state updates')
@@ -214,11 +210,10 @@ export default function FlashcardsPage() {
 
     // Cleanup function - prevents state updates after unmount
     return () => {
-      console.log('[Flashcards] Cleaning up - aborting pending requests')
       isMounted = false
       abortController.abort()
     }
-  }, [fetchFlashcardSets, fetchSuggestedSets])
+  }, [])
 
   return (
     <div className="space-y-6">
