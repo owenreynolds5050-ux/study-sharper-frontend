@@ -42,7 +42,9 @@ export default function FlashcardsPage() {
     
     if (result.ok && result.data) {
       console.log('[Flashcards Page] Setting flashcard sets to:', result.data)
+      console.log('[Flashcards] BEFORE setFlashcardSets:', result.data)
       setFlashcardSets(result.data)
+      console.log('[Flashcards] AFTER setFlashcardSets, new state should be:', result.data)
       setSetsError(null)
       console.log('[Flashcards] Success:', result.data.length, 'sets')
     } else {
@@ -184,6 +186,11 @@ export default function FlashcardsPage() {
     if (diffDays < 7) return `${diffDays} day${diffDays !== 1 ? 's' : ''} ago`
     return date.toLocaleDateString()
   }
+
+  // Monitor flashcardSets state changes
+  useEffect(() => {
+    console.log('[Flashcards] State updated! flashcardSets is now:', flashcardSets)
+  }, [flashcardSets])
 
   // Load data on mount
   useEffect(() => {
