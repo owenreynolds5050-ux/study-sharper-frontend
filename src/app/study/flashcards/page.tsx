@@ -30,10 +30,18 @@ export default function FlashcardsPage() {
   const fetchFlashcardSets = useCallback(async (signal?: AbortSignal) => {
     setSetsError(null)
     setLoading(true)
+    console.log('[Flashcards Page] fetchFlashcardSets called')
     
     const result = await getFlashcardSets(signal, { retries: 2, initialDelayMs: 500 })
     
+    console.log('[Flashcards Page] getFlashcardSets result:', result)
+    console.log('[Flashcards Page] result.ok:', result.ok)
+    console.log('[Flashcards Page] result.data:', result.data)
+    console.log('[Flashcards Page] result.data type:', typeof result.data)
+    console.log('[Flashcards Page] result.data is array?', Array.isArray(result.data))
+    
     if (result.ok && result.data) {
+      console.log('[Flashcards Page] Setting flashcard sets to:', result.data)
       setFlashcardSets(result.data)
       setSetsError(null)
       console.log('[Flashcards] Success:', result.data.length, 'sets')

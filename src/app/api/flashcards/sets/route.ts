@@ -8,6 +8,8 @@ export const dynamic = 'force-dynamic'
 export async function GET(request: NextRequest) {
   try {
     const authHeader = request.headers.get('authorization')
+    console.log('[API /flashcards/sets] GET request received')
+    console.log('[API /flashcards/sets] Auth header present:', !!authHeader)
 
     // Forward request to backend with user's access token
     const response = await fetch(`${BACKEND_URL}/api/flashcards/sets`, {
@@ -18,8 +20,11 @@ export async function GET(request: NextRequest) {
       },
     })
 
+    console.log('[API /flashcards/sets] Backend response status:', response.status)
+
     if (!response.ok) {
       const error = await response.json()
+      console.error('[API /flashcards/sets] Backend error:', error)
       return NextResponse.json(
         { error: error.detail || 'Failed to fetch flashcard sets' },
         { status: response.status }
@@ -27,10 +32,15 @@ export async function GET(request: NextRequest) {
     }
 
     const data = await response.json()
+    console.log('[API /flashcards/sets] Backend response data:', data)
+    console.log('[API /flashcards/sets] Data type:', typeof data)
+    console.log('[API /flashcards/sets] Is array?', Array.isArray(data))
+    console.log('[API /flashcards/sets] Data length:', data?.length || 'N/A')
+    
     return NextResponse.json(data)
 
   } catch (error) {
-    console.error('Error fetching flashcard sets:', error)
+    console.error('[API /flashcards/sets] Error fetching flashcard sets:', error)
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
