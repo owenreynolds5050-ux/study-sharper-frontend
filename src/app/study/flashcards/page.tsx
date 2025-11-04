@@ -113,48 +113,45 @@ export default function FlashcardsPage() {
     setLoadingSuggestions(false)
   }, [fetchSuggestedSets])
 
-  const handleGenerate = useCallback(async (request: any) => {
+  const handleGenerate = useCallback(async (params: any) => {
     setIsGenerating(true)
     setSetsError(null)
-    
+
     try {
       let result
-      
-      // Check if this is a file request or notes request
-      if ('file_id' in request) {
-        // FILE MODE: Use generateFlashcardsFromFile
-        console.log('[Flashcards] Generating from file:', request.file_id)
-        result = await generateFlashcardsFromFile(request, { retries: 1, initialDelayMs: 1000 })
-      } else {
-        // NOTES MODE: Use generateFlashcards
-        console.log('[Flashcards] Generating from notes:', request.note_ids)
-        result = await generateFlashcards(request, { retries: 1, initialDelayMs: 1000 })
-      }
-      
-      if (result.ok && result.data) {
-        // For file generation, result includes verification stats
-        // For notes generation, just show generic success
-        const message = `✨ Successfully generated flashcards!` 
 
+      if (params.file_id) {
+        result = await generateFlashcardsFromFile({
+          file_id: params.file_id,
+          num_cards: params.num_cards || 10,
+          difficulty: params.difficulty || 'medium'
+        })
+      } else {
+        result = await generateFlashcards({
+          note_ids: params.note_ids,
+          num_cards: params.num_cards || 10,
+          difficulty: params.difficulty || 'medium',
+          set_title: params.set_title,
+          set_description: params.set_description
+        }, { retries: 1, initialDelayMs: 1000 })
+      }
+
+      if (result.ok && result.data) {
         setToast({
-          message: message,
+          message: result.data.message || 'Flashcards generated successfully!',
           type: 'success'
         })
-        
-        // Add the new set to the list immediately (optimistic update)
-        setFlashcardSets(prev => [result.data!, ...prev])
-        
-        // Refetch to get fresh data from server
+
+        const setId = result.data.set_id || result.data.id
+
         await fetchFlashcardSets()
-        
-        // Navigate to the new set after a brief delay to show toast
+
         setTimeout(() => {
-          router.push(`/study/flashcards/${result.data!.id}`)
+          router.push(`/study/flashcards/${setId}`)
         }, 1500)
       } else {
-        const message = result.error || 'Failed to generate flashcards'
         setToast({
-          message: `❌ ${message}. Please try again.`,
+          message: `❌ ${result.error || 'Failed to generate flashcards'}. Please try again.`,
           type: 'error'
         })
       }
@@ -534,6 +531,17 @@ export default function FlashcardsPage() {
           forceRefresh()
         }}
       />
+
+      {/* Loading overlay during generation */}
+      {isGenerating && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-8 flex flex-col items-center">
+            <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600 mb-4"></div>
+            <p className="text-lg font-semibold">Generating flashcards...</p>
+            <p className="text-sm text-gray-600 mt-2">This may take a moment</p>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
