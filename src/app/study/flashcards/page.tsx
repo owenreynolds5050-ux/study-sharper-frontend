@@ -137,18 +137,29 @@ export default function FlashcardsPage() {
       }
 
       if (result.ok && result.data) {
+        const data = result.data as FlashcardSet & {
+          set_id?: string
+          message?: string
+        }
+
+        const successMessage = typeof data.message === 'string' && data.message.trim().length > 0
+          ? data.message
+          : 'Flashcards generated successfully!'
+
+        const setId = data.set_id || data.id
+
         setToast({
-          message: result.data.message || 'Flashcards generated successfully!',
+          message: successMessage,
           type: 'success'
         })
 
-        const setId = result.data.set_id || result.data.id
-
         await fetchFlashcardSets()
 
-        setTimeout(() => {
-          router.push(`/study/flashcards/${setId}`)
-        }, 1500)
+        if (setId) {
+          setTimeout(() => {
+            router.push(`/study/flashcards/${setId}`)
+          }, 1500)
+        }
       } else {
         setToast({
           message: `❌ ${result.error || 'Failed to generate flashcards'}. Please try again.`,
