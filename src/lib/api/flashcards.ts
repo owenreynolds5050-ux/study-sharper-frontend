@@ -18,19 +18,20 @@ async function fetchWithAuth(input: RequestInfo | URL, init: RequestInit = {}) {
 
   const headers = new Headers(init.headers || {})
 
-  headers.set('Cache-Control', 'no-cache, no-store, must-revalidate')
-  headers.set('Pragma', 'no-cache')
-  headers.set('Expires', '0')
-
   if (session?.access_token) {
     headers.set('Authorization', `Bearer ${session.access_token}`)
   }
 
-  return fetch(input, {
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL ?? ''
+  const finalUrl = typeof input === 'string' && input.startsWith('/')
+    ? `${baseUrl}${input}`
+    : input
+
+  return fetch(finalUrl, {
     ...init,
     headers,
-    credentials: 'include', // Include cookies for session-based auth
-    signal: init.signal // Pass through abort signal
+    credentials: 'include',
+    signal: init.signal
   })
 }
 
